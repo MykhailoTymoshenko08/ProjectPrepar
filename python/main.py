@@ -25,6 +25,7 @@ token2 = response_2["usage"]["total_tokens"]
 print(response_1["model"], text1)
 print(response_2["model"], text2)
 print("The token's sum: ", token1+token2)
+text3=input()
 
 print(response_1["model"], "is more economy") if token1<token2 else print(response_2["model"], "is more economy")
 
