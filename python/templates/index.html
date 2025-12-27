@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fushion Chat</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #5d5fef;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 100px;
+            margin-bottom: 15px;
+            transition: border 0.3s;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #5d5fef;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .answer-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            min-height: 100px;
+            border-left: 5px solid #5d5fef;
+            display: none;
+            overflow: hidden;
+        }
+        .typing-animation {
+            overflow: hidden;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 20px;
+            background: #5d5fef;
+            margin-left: 2px;
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-size: 18px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Fushion Chat Demo</h1>
+        
+        <select id="model">
+            <option value="meta-llama/llama-3.2-3b-instruct">Llama 3.2 3B (fast)</option>
+            <option value="meta-llama/llama-3.1-8b-instruct">Llama 3.1 8B (detailed)</option>
+        </select>
+        
+        <textarea id="message" placeholder="Enter your text there"></textarea>
+        
+        <button id="send-btn">Sent request</button>
+        
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>AI is thinking...</p>
+        </div>
+        
+        <div class="answer-box" id="answer-box">
+            <h3>✨AI answer:</h3>
+            <div class="typing-animation" id="typing-text"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('send-btn').addEventListener('click', async function() {
+            const message = document.getElementById('message').value;
+            const model = document.getElementById('model').value;
+            const btn = this;
+            
+            if (!message.trim()) {
+                alert('Будь ласка, введіть повідомлення!');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Обробка...';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('answer-box').style.display = 'none';
+            
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message, model})
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    document.getElementById('answer-box').style.display = 'block';
+                    typewriterEffect(data.answer);
+                } else {
+                    alert('Помилка: ' + data.error);
+                }
+                
+            } catch (error) {
+                alert('Помилка мережі: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 Надіслати запит';
+            }
+        });
+        
+        function typewriterEffect(text) {
+            const typingElement = document.getElementById('typing-text');
+            typingElement.innerHTML = ''; // Очищаємо попередній текст
+            const cursor = document.createElement('span');
+            cursor.className = 'cursor';
+            typingElement.appendChild(cursor);
+            
+            let index = 0;
+            const speed = 20; // Швидкість друку (мілісекунд на символ)
+            
+            function typeChar() {
+                if (index < text.length) {
+                    const char = text.charAt(index);
+                    const charSpan = document.createElement('span');
+                    charSpan.textContent = char;
+                    typingElement.insertBefore(charSpan, cursor);
+                    index++;
+                    setTimeout(typeChar, speed);
+                } else {
+                    cursor.style.display = 'none';
+                }
+            }
+            
+            setTimeout(typeChar, speed);
+        }
+        
+        // Enter для відправки
+        document.getElementById('message').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                document.getElementById('send-btn').click();
+            }
+        });
+    </script>
+</body>
+</html>
