@@ -64,7 +64,8 @@ def main(promptM):
 
     print("Write your request")
     prompt = input()
-    if prompt == 0:
+    if prompt == "0":
+        print("Task ended")
         exit()
     else:
         main(prompt)    
